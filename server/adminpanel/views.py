@@ -9,14 +9,14 @@ import traceback
 from students.models import Year, Semester, Subject, StudyMaterial
 from students.serializers import YearSerializer, SemesterSerializer, SubjectSerializer, StudyMaterialSerializer
 from accounts.serializers import UserSerializer
-from .permissions import IsAdmin
+from .permissions import IsFaculty
 
 User = get_user_model()
 
 class StudentManagementViewSet(viewsets.ModelViewSet):
     """Manage students - Admin only"""
     serializer_class = UserSerializer
-    permission_classes = [IsAuthenticated, IsAdmin]
+    permission_classes = [IsAuthenticated, IsFaculty]
     
     def get_queryset(self):
         queryset = User.objects.filter(role='student')
@@ -63,7 +63,7 @@ class StudentManagementViewSet(viewsets.ModelViewSet):
 
 class AcademicStructureViewSet(viewsets.ModelViewSet):
     """Manage academic structure - Admin only"""
-    permission_classes = [IsAuthenticated, IsAdmin]
+    permission_classes = [IsAuthenticated, IsFaculty]
     
     def get_queryset(self):
         structure_type = self.request.query_params.get('type', 'year')
@@ -115,7 +115,7 @@ class AcademicStructureViewSet(viewsets.ModelViewSet):
 class StudyMaterialManagementViewSet(viewsets.ModelViewSet):
     """Upload and manage study materials - Admin only"""
     serializer_class = StudyMaterialSerializer
-    permission_classes = [IsAuthenticated, IsAdmin]
+    permission_classes = [IsAuthenticated, IsFaculty]
     
     def get_queryset(self):
         queryset = StudyMaterial.objects.all()

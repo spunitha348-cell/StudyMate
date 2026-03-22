@@ -6,7 +6,7 @@ function ChatWidget() {
   const [messages, setMessages] = useState([
     {
       id: 1,
-      text: "Welcome to StudyMate! 👋 How can we assist you today?",
+      text: "Welcome to StudyMate for engineering students! 👋 How can we help?",
       sender: 'bot',
       timestamp: new Date()
     }

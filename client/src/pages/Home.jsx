@@ -20,12 +20,12 @@ function Home() {
               <a href="#structure" className="text-gray-700 hover:text-indigo-600 font-medium transition-colors">Structure</a>
               <a href="#about" className="text-gray-700 hover:text-indigo-600 font-medium transition-colors">About</a>
             </div>
-            <div className="flex items-center space-x-4">
-              <Link to="/login" className="text-gray-700 hover:text-indigo-600 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:bg-gray-100">
-                Login
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
+              <Link to="/login/student" className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:bg-gray-100">
+                Student login
               </Link>
-              <Link to="/signup" className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
-                Sign Up
+              <Link to="/login/faculty" className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:bg-gray-100">
+                Faculty login
               </Link>
             </div>
           </div>
@@ -45,7 +45,7 @@ function Home() {
           <div className="text-center">
             <div className="inline-block mb-6">
               <span className="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-full text-sm font-semibold shadow-sm">
-                🎓 Your Academic Companion
+                🎓 For engineering students
               </span>
             </div>
             <h2 className="text-6xl md:text-7xl font-extrabold text-gray-900 mb-6 leading-tight">
@@ -55,12 +55,15 @@ function Home() {
               </span>
             </h2>
             <p className="text-xl md:text-2xl text-gray-600 mb-10 max-w-3xl mx-auto leading-relaxed">
-              No more scattered WhatsApp groups or lost emails. StudyMate brings all your academic materials together in one organized, secure, and intelligent platform.
+              Built for B.E. / B.Tech learners: one place for notes, question papers, and lab resources—organized by year and semester so you spend less time searching and more time studying.
             </p>
-            <div className="flex justify-center items-center">
-              <Link to="/signup" className="group relative bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-8 py-4 rounded-xl text-lg font-semibold transition-all shadow-2xl hover:shadow-indigo-500/50 transform hover:-translate-y-1 overflow-hidden">
-                <span className="relative z-10">Get Started Free</span>
+            <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
+              <Link to="/signup/student" className="group relative bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-8 py-4 rounded-xl text-lg font-semibold transition-all shadow-2xl hover:shadow-indigo-500/50 transform hover:-translate-y-1 overflow-hidden">
+                <span className="relative z-10">Student sign up</span>
                 <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              </Link>
+              <Link to="/signup/faculty" className="group relative bg-white text-indigo-700 border-2 border-indigo-200 hover:border-indigo-400 px-8 py-4 rounded-xl text-lg font-semibold transition-all shadow-lg hover:shadow-indigo-200/50 transform hover:-translate-y-1">
+                Faculty sign up
               </Link>
             </div>
             
@@ -94,7 +97,7 @@ function Home() {
               Struggling with Scattered Resources?
             </h3>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Traditional academic environments create unnecessary friction for students
+              Engineering coursework moves fast—your materials should keep up
             </p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -152,7 +155,7 @@ function Home() {
               Everything You Need, One Platform
             </h3>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              A comprehensive solution designed for the modern student
+              One platform for engineering students and faculty to share and manage study resources
             </p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -176,7 +179,7 @@ function Home() {
               {
                 icon: '👥',
                 title: 'Role-Based Access',
-                desc: 'Students and administrators have tailored interfaces. Access only what you need, when you need it.',
+                desc: 'Students browse and download; faculty upload and manage materials. Each role sees what they need.',
                 gradient: 'from-indigo-500 to-purple-500',
                 iconBg: 'bg-indigo-100',
                 iconColor: 'text-indigo-600'
@@ -293,17 +296,20 @@ function Home() {
           <h3 className="text-4xl md:text-5xl font-bold text-white mb-6">
             Ready to Transform Your Study Experience?
           </h3>
-          <p className="text-xl text-indigo-100 mb-10 max-w-2xl mx-auto">
-            Join thousands of students who have already streamlined their academic journey with StudyMate
+            <p className="text-xl text-indigo-100 mb-10 max-w-2xl mx-auto">
+            Join engineering students who keep notes, papers, and labs organized with StudyMate
           </p>
-          <div className="flex justify-center">
-            <Link to="/signup" className="group bg-white text-indigo-600 hover:bg-gray-50 px-10 py-5 rounded-xl text-lg font-semibold transition-all shadow-2xl hover:shadow-white/50 transform hover:-translate-y-1">
+          <div className="flex flex-col sm:flex-row justify-center gap-4">
+            <Link to="/signup/student" className="group bg-white text-indigo-600 hover:bg-gray-50 px-10 py-5 rounded-xl text-lg font-semibold transition-all shadow-2xl hover:shadow-white/50 transform hover:-translate-y-1">
               <span className="flex items-center justify-center space-x-2">
-                <span>Get Started Free</span>
+                <span>Student sign up</span>
                 <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
               </span>
+            </Link>
+            <Link to="/signup/faculty" className="group border-2 border-white/80 text-white hover:bg-white/10 px-10 py-5 rounded-xl text-lg font-semibold transition-all transform hover:-translate-y-1">
+              Faculty sign up
             </Link>
           </div>
         </div>

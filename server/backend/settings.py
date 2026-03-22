@@ -15,11 +15,6 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-this-in-produc
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
 
-# Static admin: if login matches these, treat as admin (user is auto-created in DB for JWT)
-STATIC_ADMIN_USERNAME = config('STATIC_ADMIN_USERNAME', default='Admin')
-STATIC_ADMIN_PASSWORD = config('STATIC_ADMIN_PASSWORD', default='jacsice@Admin')
-STATIC_ADMIN_EMAIL = config('STATIC_ADMIN_EMAIL', default='jacsiceadmin@gmail.com')
-
 # ALLOWED_HOSTS - support both comma-separated string and list
 allowed_hosts_str = config('ALLOWED_HOSTS', default='localhost,127.0.0.1')
 ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_str.split(',') if host.strip()]
@@ -78,8 +73,10 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'backend.wsgi.application'
 
-# MongoDB Configuration
+# MongoDB Configuration (same cluster; students use studymate_db, faculty use MONGODB_FACULTY_DB_NAME)
 MONGODB_URI = config('MONGODB_URI', default='mongodb+srv://nalliayanandhakumar_db_user:StudyMate@cluster0.giucynj.mongodb.net/studymate_db?retryWrites=true&w=majority')
+MONGODB_FACULTY_DB_NAME = config('MONGODB_FACULTY_DB_NAME', default='studymate_faculty_db')
+MONGODB_FACULTY_COLLECTION = config('MONGODB_FACULTY_COLLECTION', default='faculty')
 
 # Cloudinary Configuration
 CLOUDINARY_CLOUD_NAME = config('CLOUDINARY_CLOUD_NAME', default='')

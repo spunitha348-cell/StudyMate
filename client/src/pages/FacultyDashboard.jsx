@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../services/api'
 
-function AdminDashboard() {
+function FacultyDashboard() {
   const navigate = useNavigate()
   const [username, setUsername] = useState('')
   const [activeTab, setActiveTab] = useState('materials') // materials, students, structure
@@ -37,10 +37,10 @@ function AdminDashboard() {
     const userRole = localStorage.getItem('userRole')
     const storedUsername = localStorage.getItem('username')
 
-    if (!isAuthenticated || userRole !== 'admin') {
-      navigate('/login')
+    if (!isAuthenticated || userRole !== 'faculty') {
+      navigate('/login/faculty')
     } else {
-      setUsername(storedUsername || 'Admin')
+      setUsername(storedUsername || 'Faculty')
       loadInitialData()
     }
   }, [navigate])
@@ -69,7 +69,7 @@ function AdminDashboard() {
         localStorage.removeItem('userRole')
         localStorage.removeItem('accessToken')
         localStorage.removeItem('refreshToken')
-        navigate('/login')
+        navigate('/login/faculty')
       }
     }
   }
@@ -161,7 +161,7 @@ function AdminDashboard() {
         localStorage.removeItem('userRole')
         localStorage.removeItem('accessToken')
         localStorage.removeItem('refreshToken')
-        navigate('/login')
+        navigate('/login/faculty')
       }
     }
   }
@@ -236,7 +236,7 @@ function AdminDashboard() {
         localStorage.removeItem('userRole')
         localStorage.removeItem('accessToken')
         localStorage.removeItem('refreshToken')
-        navigate('/login')
+        navigate('/login/faculty')
       }
     }
   }
@@ -295,7 +295,7 @@ function AdminDashboard() {
                 <span className="text-white font-bold text-xl">S</span>
               </div>
               <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                StudyMate Admin
+                StudyMate Faculty
               </h1>
             </div>
             <div className="flex items-center space-x-4">
@@ -314,7 +314,7 @@ function AdminDashboard() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Admin Dashboard</h2>
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">Faculty Dashboard</h2>
           <p className="text-gray-600">Manage your academic resources and students</p>
         </div>
 
@@ -643,4 +643,4 @@ function AdminDashboard() {
   )
 }
 
-export default AdminDashboard
+export default FacultyDashboard

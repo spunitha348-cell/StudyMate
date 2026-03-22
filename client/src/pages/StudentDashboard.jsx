@@ -25,7 +25,7 @@ function StudentDashboard() {
     const storedUsername = localStorage.getItem('username')
 
     if (!isAuthenticated || userRole !== 'student') {
-      navigate('/login')
+      navigate('/login/student')
     } else {
       setUsername(storedUsername || 'Student')
       loadInitialData()

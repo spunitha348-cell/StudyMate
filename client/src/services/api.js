@@ -1,5 +1,7 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://studymate-backend-swpd.onrender.com/api'
-const BACKEND_DISPLAY_URL = API_BASE_URL.replace(/\/api\/?$/, '') || 'http://localhost:8000'
+// Dev: .env.development → localhost | Prod: .env.production → Render (see client/.env.*)
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api'
+const BACKEND_DISPLAY_URL = API_BASE_URL.replace(/\/api\/?$/, '') || 'http://127.0.0.1:8000'
 
 // Helper function to get auth token
 const getAuthToken = () => {
@@ -56,30 +58,53 @@ export const api = {
     }
   },
 
-  // Authentication
-  async login(username, email, password) {
+  // Authentication — students use Django users only (role=student)
+  async loginStudent(username, email, password) {
     try {
-      // Login with email (or username if provided)
-      // Backend accepts email in the username field
       const loginData = { username: email || username, password }
-      
-      const response = await fetch(`${API_BASE_URL}/token/`, {
+      const response = await fetch(`${API_BASE_URL}/auth/student/login/`, {
         method: 'POST',
         headers: getHeaders(false),
         body: JSON.stringify(loginData),
       })
-      
       if (!response.ok) {
         const error = await this.parseResponse(response)
-        throw new Error(error.detail || error.error || 'Login failed')
+        throw new Error(
+          (typeof error.detail === 'string' ? error.detail : null)
+            || error.error
+            || (Array.isArray(error.detail) ? error.detail[0] : null)
+            || 'Login failed'
+        )
       }
-      
       return await this.parseResponse(response)
     } catch (error) {
       if (error.message.includes('Backend server') || error.message.includes('Invalid response')) {
         throw error
       }
-      // Network error
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        throw new Error(`Cannot connect to backend server. Please make sure Django is running on ${BACKEND_DISPLAY_URL}`)
+      }
+      throw error
+    }
+  },
+
+  /** Faculty: credentials are verified against MongoDB `faculty` collection. */
+  async loginFaculty(email, password) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/faculty/login/`, {
+        method: 'POST',
+        headers: getHeaders(false),
+        body: JSON.stringify({ email, password }),
+      })
+      if (!response.ok) {
+        const error = await this.parseResponse(response)
+        throw new Error(error.error || error.detail || 'Login failed')
+      }
+      return await this.parseResponse(response)
+    } catch (error) {
+      if (error.message.includes('Backend server') || error.message.includes('Invalid response')) {
+        throw error
+      }
       if (error.name === 'TypeError' && error.message.includes('fetch')) {
         throw new Error(`Cannot connect to backend server. Please make sure Django is running on ${BACKEND_DISPLAY_URL}`)
       }
@@ -125,6 +150,66 @@ export const api = {
       }
       throw error
     }
+  },
+
+  async registerFaculty(userData) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/register/faculty/`, {
+        method: 'POST',
+        headers: getHeaders(false),
+        body: JSON.stringify(userData),
+      })
+      if (!response.ok) {
+        const error = await this.parseResponse(response)
+        const msg =
+          error.error ||
+          (typeof error.detail === 'string' ? error.detail : null) ||
+          (Array.isArray(error.detail) ? error.detail[0] : null) ||
+          'Registration failed'
+        const extra =
+          error.details && typeof error.details === 'string' ? `\n${error.details}` : ''
+        throw new Error(msg + extra)
+      }
+      return await this.parseResponse(response)
+    } catch (error) {
+      if (error.message.includes('Backend server') || error.message.includes('Invalid response')) {
+        throw error
+      }
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        throw new Error(`Cannot connect to backend server. Please make sure Django is running on ${BACKEND_DISPLAY_URL}`)
+      }
+      throw error
+    }
+  },
+
+  async forgotPasswordCheckEmail(email) {
+    const response = await fetch(`${API_BASE_URL}/auth/forgot-password/check-email/`, {
+      method: 'POST',
+      headers: getHeaders(false),
+      body: JSON.stringify({ email }),
+    })
+    const data = await this.parseResponse(response)
+    if (!response.ok) {
+      throw new Error(data.error || data.detail || 'Request failed')
+    }
+    return data
+  },
+
+  async forgotPasswordReset(email, newPassword, confirmPassword) {
+    const response = await fetch(`${API_BASE_URL}/auth/forgot-password/reset/`, {
+      method: 'POST',
+      headers: getHeaders(false),
+      body: JSON.stringify({
+        email,
+        new_password: newPassword,
+        confirm_password: confirmPassword,
+      }),
+    })
+    const data = await this.parseResponse(response)
+    if (!response.ok) {
+      throw new Error(data.error || data.detail || 'Reset failed')
+    }
+    return data
   },
   
   // Student APIs

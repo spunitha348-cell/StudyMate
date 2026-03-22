@@ -1,9 +1,10 @@
 from rest_framework import permissions
 
-class IsAdmin(permissions.BasePermission):
-    """Check if user is admin"""
+class IsFaculty(permissions.BasePermission):
+    """Faculty can access admin-panel APIs (materials, structure, student records)."""
     def has_permission(self, request, view):
-        return request.user and request.user.is_authenticated and request.user.role == 'admin'
-
-
-
+        return (
+            request.user
+            and request.user.is_authenticated
+            and getattr(request.user, 'role', None) == 'faculty'
+        )
