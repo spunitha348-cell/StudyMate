@@ -67,21 +67,8 @@ function Home() {
               </Link>
             </div>
             
-            {/* Stats */}
-            <div className="mt-16 grid grid-cols-3 gap-8 max-w-2xl mx-auto">
-              {[
-                { number: '10K+', label: 'Students' },
-                { number: '50K+', label: 'Resources' },
-                { number: '99%', label: 'Satisfaction' }
-              ].map((stat, idx) => (
-                <div key={idx} className="text-center">
-                  <div className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                    {stat.number}
-                  </div>
-                  <div className="text-sm text-gray-600 mt-1">{stat.label}</div>
-                </div>
-              ))}
-            </div>
+          
+            
           </div>
         </div>
       </section>

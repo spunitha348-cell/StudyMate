@@ -469,10 +469,16 @@ function FacultyDashboard() {
           </div>
         )}
 
-        {/* Upload Modal */}
+        {/* Upload modal */}
         {showUploadModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <button
+              type="button"
+              aria-label="Close upload dialog"
+              className="absolute inset-0 bg-slate-900/45 backdrop-blur-[1px]"
+              onClick={() => setShowUploadModal(false)}
+            />
+            <div className="relative z-10 bg-white rounded-xl shadow-2xl p-6 max-w-md w-full border border-gray-100">
               <h3 className="text-2xl font-bold text-gray-900 mb-4">Upload Study Material</h3>
               <form onSubmit={handleUpload} className="space-y-4">
                 <div>
