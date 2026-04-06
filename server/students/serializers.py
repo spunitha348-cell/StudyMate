@@ -41,7 +41,7 @@ class StudyMaterialSerializer(serializers.ModelSerializer):
     class Meta:
         model = StudyMaterial
         fields = ['id', 'subject', 'subject_name', 'title', 'description', 'material_type', 
-                  'file', 'file_url', 'file_name', 'file_size', 'file_format',
+                  'youtube_url', 'file', 'file_url', 'file_name', 'file_size', 'file_format',
                   'cloudinary_public_id', 'cloudinary_url', 'cloudinary_secure_url',
                   'uploaded_by_name', 'created_at', 'updated_at']
         read_only_fields = ['uploaded_by', 'created_at', 'updated_at', 'cloudinary_public_id', 
@@ -50,6 +50,15 @@ class StudyMaterialSerializer(serializers.ModelSerializer):
     def validate_file(self, value):
         """File field is optional since we're using Cloudinary"""
         return value
+
+    def validate(self, attrs):
+        request = self.context.get('request')
+        if request and request.method == 'POST':
+            incoming_file = request.FILES.get('file')
+            youtube_url = attrs.get('youtube_url')
+            if not incoming_file and not youtube_url:
+                raise serializers.ValidationError("Please provide either a file or a YouTube URL.")
+        return attrs
     
     def get_file_url(self, obj):
         # Priority: Cloudinary secure URL > Cloudinary URL > local file URL

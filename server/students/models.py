@@ -68,6 +68,7 @@ class StudyMaterial(models.Model):
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
     material_type = models.CharField(max_length=20, choices=MATERIAL_TYPES, default='note')
+    youtube_url = models.URLField(max_length=500, blank=True, null=True)
     # Cloudinary fields
     cloudinary_public_id = models.CharField(max_length=255, blank=True, null=True)
     cloudinary_url = models.URLField(max_length=500, blank=True, null=True)

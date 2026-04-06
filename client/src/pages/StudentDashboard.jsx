@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../services/api'
+
+const ALL_OPTION = '__ALL__'
 
 function StudentDashboard() {
   const navigate = useNavigate()
@@ -12,12 +14,23 @@ function StudentDashboard() {
   const [materials, setMaterials] = useState([])
   
   // Filter states
-  const [selectedDepartment, setSelectedDepartment] = useState('')
-  const [selectedYear, setSelectedYear] = useState('')
-  const [selectedSemester, setSelectedSemester] = useState('')
-  const [selectedSubject, setSelectedSubject] = useState('')
+  const [selectedDepartment, setSelectedDepartment] = useState(ALL_OPTION)
+  const [selectedYear, setSelectedYear] = useState(ALL_OPTION)
+  const [selectedSemester, setSelectedSemester] = useState(ALL_OPTION)
+  const [selectedSubject, setSelectedSubject] = useState(ALL_OPTION)
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(false)
+  const materialsRequestIdRef = useRef(0)
+
+  const resetMaterialFilters = () => {
+    setSelectedDepartment(ALL_OPTION)
+    setSelectedYear(ALL_OPTION)
+    setSelectedSemester(ALL_OPTION)
+    setSelectedSubject(ALL_OPTION)
+    setSearchTerm('')
+    setSemesters([])
+    setSubjects([])
+  }
 
   useEffect(() => {
     const isAuthenticated = localStorage.getItem('isAuthenticated')
@@ -28,6 +41,7 @@ function StudentDashboard() {
       navigate('/login/student')
     } else {
       setUsername(storedUsername || 'Student')
+      resetMaterialFilters()
       loadInitialData()
     }
   }, [navigate])
@@ -42,11 +56,8 @@ function StudentDashboard() {
       const yrs = Array.isArray(yearsData.results) ? yearsData.results : (Array.isArray(yearsData) ? yearsData : [])
       setDepartments(depts)
       setYears(yrs)
-      // Default to first department and first year so dropdowns show options by default
-      if (depts.length > 0 && yrs.length > 0) {
-        setSelectedDepartment(String(depts[0].id))
-        setSelectedYear(String(yrs[0].id))
-      }
+      // Keep filters as "All" on first load
+      resetMaterialFilters()
     } catch (error) {
       console.error('Error loading initial data:', error)
       setDepartments([])
@@ -56,12 +67,12 @@ function StudentDashboard() {
 
   const handleDepartmentChange = async (deptId) => {
     setSelectedDepartment(deptId)
-    setSelectedSemester('')
-    setSelectedSubject('')
+    setSelectedSemester(ALL_OPTION)
+    setSelectedSubject(ALL_OPTION)
     setSemesters([])
     setSubjects([])
     
-    if (deptId && selectedYear) {
+    if (deptId !== ALL_OPTION && selectedYear !== ALL_OPTION) {
       loadSemesters(deptId, selectedYear)
     }
     
@@ -71,12 +82,12 @@ function StudentDashboard() {
 
   const handleYearChange = async (yearId) => {
     setSelectedYear(yearId)
-    setSelectedSemester('')
-    setSelectedSubject('')
+    setSelectedSemester(ALL_OPTION)
+    setSelectedSubject(ALL_OPTION)
     setSemesters([])
     setSubjects([])
     
-    if (yearId && selectedDepartment) {
+    if (yearId !== ALL_OPTION && selectedDepartment !== ALL_OPTION) {
       loadSemesters(selectedDepartment, yearId)
     }
     
@@ -89,9 +100,6 @@ function StudentDashboard() {
       const data = await api.getSemesters({ department: deptId, year: yearId })
       const list = Array.isArray(data.results) ? data.results : (Array.isArray(data) ? data : [])
       setSemesters(list)
-      if (list.length > 0 && !selectedSemester) {
-        setSelectedSemester(String(list[0].id))
-      }
     } catch (error) {
       console.error('Error loading semesters:', error)
     }
@@ -99,9 +107,9 @@ function StudentDashboard() {
 
   const handleSemesterChange = async (semesterId) => {
     setSelectedSemester(semesterId)
-    setSelectedSubject('')
+    setSelectedSubject(ALL_OPTION)
     
-    if (semesterId) {
+    if (semesterId !== ALL_OPTION) {
       loadSubjects(semesterId)
     }
     
@@ -114,9 +122,6 @@ function StudentDashboard() {
       const data = await api.getSubjects({ semester: semesterId })
       const list = Array.isArray(data.results) ? data.results : (Array.isArray(data) ? data : [])
       setSubjects(list)
-      if (list.length > 0 && !selectedSubject) {
-        setSelectedSubject(String(list[0].id))
-      }
     } catch (error) {
       console.error('Error loading subjects:', error)
     }
@@ -129,21 +134,26 @@ function StudentDashboard() {
   }
 
   const loadMaterials = async () => {
+    const requestId = ++materialsRequestIdRef.current
     setLoading(true)
     try {
       const filters = {}
-      if (selectedDepartment) filters.department = selectedDepartment
-      if (selectedYear) filters.year = selectedYear
-      if (selectedSemester) filters.semester = selectedSemester
-      if (selectedSubject) filters.subject = selectedSubject
+      if (selectedDepartment !== ALL_OPTION) filters.department = selectedDepartment
+      if (selectedYear !== ALL_OPTION) filters.year = selectedYear
+      if (selectedSemester !== ALL_OPTION) filters.semester = selectedSemester
+      if (selectedSubject !== ALL_OPTION) filters.subject = selectedSubject
       if (searchTerm) filters.search = searchTerm
       
       const data = await api.getMaterials(filters)
-      setMaterials(data.results || data)
+      if (requestId === materialsRequestIdRef.current) {
+        setMaterials(data.results || data)
+      }
     } catch (error) {
       console.error('Error loading materials:', error)
     } finally {
-      setLoading(false)
+      if (requestId === materialsRequestIdRef.current) {
+        setLoading(false)
+      }
     }
   }
 
@@ -169,16 +179,21 @@ function StudentDashboard() {
     navigate('/')
   }
 
+  const formatUploadTime = (dateValue) => {
+    if (!dateValue) return 'N/A'
+    return new Date(dateValue).toLocaleString()
+  }
+
   // Auto-load semesters when both department and year are selected
   useEffect(() => {
-    if (selectedDepartment && selectedYear) {
+    if (selectedDepartment !== ALL_OPTION && selectedYear !== ALL_OPTION) {
       loadSemesters(selectedDepartment, selectedYear)
     }
   }, [selectedDepartment, selectedYear])
 
   // Auto-load subjects when semester is selected
   useEffect(() => {
-    if (selectedSemester) {
+    if (selectedSemester !== ALL_OPTION) {
       loadSubjects(selectedSemester)
     }
   }, [selectedSemester])
@@ -231,7 +246,7 @@ function StudentDashboard() {
                 onChange={(e) => handleDepartmentChange(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
               >
-                <option value="">All Departments</option>
+                <option value={ALL_OPTION}>All Departments</option>
                 {departments.map((dept) => (
                   <option key={dept.id} value={dept.id}>{dept.name}</option>
                 ))}
@@ -245,7 +260,7 @@ function StudentDashboard() {
                 onChange={(e) => handleYearChange(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
               >
-                <option value="">All Years</option>
+                <option value={ALL_OPTION}>All Years</option>
                 {years.map((year) => (
                   <option key={year.id} value={year.id}>{year.name}</option>
                 ))}
@@ -257,10 +272,10 @@ function StudentDashboard() {
               <select
                 value={selectedSemester}
                 onChange={(e) => handleSemesterChange(e.target.value)}
-                disabled={!selectedDepartment || !selectedYear}
+                disabled={selectedDepartment === ALL_OPTION || selectedYear === ALL_OPTION}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none disabled:bg-gray-100"
               >
-                <option value="">All Semesters</option>
+                <option value={ALL_OPTION}>All Semesters</option>
                 {semesters.map((sem) => (
                   <option key={sem.id} value={sem.id}>Semester {sem.number}</option>
                 ))}
@@ -272,10 +287,10 @@ function StudentDashboard() {
               <select
                 value={selectedSubject}
                 onChange={(e) => handleSubjectChange(e.target.value)}
-                disabled={!selectedSemester}
+                disabled={selectedSemester === ALL_OPTION}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none disabled:bg-gray-100"
               >
-                <option value="">All Subjects</option>
+                <option value={ALL_OPTION}>All Subjects</option>
                 {subjects.map((subject) => (
                   <option key={subject.id} value={subject.id}>{subject.name}</option>
                 ))}
@@ -328,14 +343,30 @@ function StudentDashboard() {
                   {material.description && (
                     <p className="text-sm text-gray-600 mb-3 line-clamp-2">{material.description}</p>
                   )}
+                  {material.youtube_url && (
+                    <a
+                      href={material.youtube_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm text-red-600 hover:text-red-700 font-medium mb-2 block"
+                    >
+                      Watch on YouTube
+                    </a>
+                  )}
+                  <div className="text-xs text-gray-500 mb-3">
+                    <p>Uploaded by: {material.uploaded_by_name || 'Unknown'}</p>
+                    <p>Uploaded at: {formatUploadTime(material.created_at)}</p>
+                  </div>
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-gray-500">{material.subject_name}</span>
-                    <button
-                      onClick={() => handleDownload(material.id)}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
-                    >
-                      Download
-                    </button>
+                    {material.file_url && (
+                      <button
+                        onClick={() => handleDownload(material.id)}
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
+                      >
+                        Download
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}

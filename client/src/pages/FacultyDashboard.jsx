@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../services/api'
+
+const ALL_OPTION = '__ALL__'
 
 function FacultyDashboard() {
   const navigate = useNavigate()
@@ -14,10 +16,10 @@ function FacultyDashboard() {
   const [subjects, setSubjects] = useState([])
   const [materials, setMaterials] = useState([])
   
-  const [selectedDepartment, setSelectedDepartment] = useState('')
-  const [selectedYear, setSelectedYear] = useState('')
-  const [selectedSemester, setSelectedSemester] = useState('')
-  const [selectedSubject, setSelectedSubject] = useState('')
+  const [selectedDepartment, setSelectedDepartment] = useState(ALL_OPTION)
+  const [selectedYear, setSelectedYear] = useState(ALL_OPTION)
+  const [selectedSemester, setSelectedSemester] = useState(ALL_OPTION)
+  const [selectedSubject, setSelectedSubject] = useState(ALL_OPTION)
   const [searchTerm, setSearchTerm] = useState('')
   
   // Upload states
@@ -25,12 +27,24 @@ function FacultyDashboard() {
   const [uploadDescription, setUploadDescription] = useState('')
   const [uploadType, setUploadType] = useState('note')
   const [uploadFile, setUploadFile] = useState(null)
+  const [uploadYoutubeUrl, setUploadYoutubeUrl] = useState('')
   const [uploading, setUploading] = useState(false)
   const [showUploadModal, setShowUploadModal] = useState(false)
   
   // Student management states
   const [students, setStudents] = useState([])
   const [studentSearchTerm, setStudentSearchTerm] = useState('')
+  const materialsRequestIdRef = useRef(0)
+
+  const resetMaterialFilters = () => {
+    setSelectedDepartment(ALL_OPTION)
+    setSelectedYear(ALL_OPTION)
+    setSelectedSemester(ALL_OPTION)
+    setSelectedSubject(ALL_OPTION)
+    setSearchTerm('')
+    setSemesters([])
+    setSubjects([])
+  }
 
   useEffect(() => {
     const isAuthenticated = localStorage.getItem('isAuthenticated')
@@ -41,6 +55,7 @@ function FacultyDashboard() {
       navigate('/login/faculty')
     } else {
       setUsername(storedUsername || 'Faculty')
+      resetMaterialFilters()
       loadInitialData()
     }
   }, [navigate])
@@ -55,11 +70,8 @@ function FacultyDashboard() {
       const yrs = Array.isArray(yearsData.results) ? yearsData.results : (Array.isArray(yearsData) ? yearsData : [])
       setDepartments(depts)
       setYears(yrs)
-      // Default to first department and first year so dropdowns show options by default
-      if (depts.length > 0 && yrs.length > 0) {
-        setSelectedDepartment(String(depts[0].id))
-        setSelectedYear(String(yrs[0].id))
-      }
+      // Keep filters as "All" on first load
+      resetMaterialFilters()
     } catch (error) {
       console.error('Error loading initial data:', error)
       setDepartments([])
@@ -76,22 +88,22 @@ function FacultyDashboard() {
 
   const handleDepartmentChange = (deptId) => {
     setSelectedDepartment(deptId)
-    setSelectedSemester('')
-    setSelectedSubject('')
+    setSelectedSemester(ALL_OPTION)
+    setSelectedSubject(ALL_OPTION)
     setSemesters([])
     setSubjects([])
-    if (deptId && selectedYear) {
+    if (deptId !== ALL_OPTION && selectedYear !== ALL_OPTION) {
       loadSemesters(deptId, selectedYear)
     }
   }
 
   const handleYearChange = (yearId) => {
     setSelectedYear(yearId)
-    setSelectedSemester('')
-    setSelectedSubject('')
+    setSelectedSemester(ALL_OPTION)
+    setSelectedSubject(ALL_OPTION)
     setSemesters([])
     setSubjects([])
-    if (yearId && selectedDepartment) {
+    if (yearId !== ALL_OPTION && selectedDepartment !== ALL_OPTION) {
       loadSemesters(selectedDepartment, yearId)
     }
   }
@@ -101,10 +113,6 @@ function FacultyDashboard() {
       const data = await api.getSemesters({ department: deptId, year: yearId })
       const list = Array.isArray(data.results) ? data.results : (Array.isArray(data) ? data : [])
       setSemesters(list)
-      // Default to first semester when list loads and none selected
-      if (list.length > 0 && !selectedSemester) {
-        setSelectedSemester(String(list[0].id))
-      }
     } catch (error) {
       console.error('Error loading semesters:', error)
     }
@@ -112,9 +120,9 @@ function FacultyDashboard() {
 
   const handleSemesterChange = (semesterId) => {
     setSelectedSemester(semesterId)
-    setSelectedSubject('')
+    setSelectedSubject(ALL_OPTION)
     setSubjects([])
-    if (semesterId) {
+    if (semesterId !== ALL_OPTION) {
       loadSubjects(semesterId)
     }
   }
@@ -124,10 +132,6 @@ function FacultyDashboard() {
       const data = await api.getSubjects({ semester: semesterId })
       const list = Array.isArray(data.results) ? data.results : (Array.isArray(data) ? data : [])
       setSubjects(list)
-      // Default to first subject when list loads and none selected
-      if (list.length > 0 && !selectedSubject) {
-        setSelectedSubject(String(list[0].id))
-      }
     } catch (error) {
       console.error('Error loading subjects:', error)
     }
@@ -135,25 +139,30 @@ function FacultyDashboard() {
 
   const handleSubjectChange = (subjectId) => {
     setSelectedSubject(subjectId)
-    if (subjectId) {
+    if (subjectId !== ALL_OPTION) {
       loadMaterials()
     }
   }
 
   const loadMaterials = async () => {
+    const requestId = ++materialsRequestIdRef.current
     try {
       const filters = {}
-      if (selectedDepartment) filters.department = selectedDepartment
-      if (selectedYear) filters.year = selectedYear
-      if (selectedSemester) filters.semester = selectedSemester
-      if (selectedSubject) filters.subject = selectedSubject
+      if (selectedDepartment !== ALL_OPTION) filters.department = selectedDepartment
+      if (selectedYear !== ALL_OPTION) filters.year = selectedYear
+      if (selectedSemester !== ALL_OPTION) filters.semester = selectedSemester
+      if (selectedSubject !== ALL_OPTION) filters.subject = selectedSubject
       if (searchTerm) filters.search = searchTerm
       
       const data = await api.getAdminMaterials(filters)
-      setMaterials(Array.isArray(data.results) ? data.results : (Array.isArray(data) ? data : []))
+      if (requestId === materialsRequestIdRef.current) {
+        setMaterials(Array.isArray(data.results) ? data.results : (Array.isArray(data) ? data : []))
+      }
     } catch (error) {
       console.error('Error loading materials:', error)
-      setMaterials([])
+      if (requestId === materialsRequestIdRef.current) {
+        setMaterials([])
+      }
       
       // If authentication error, redirect to login
       if (error.message && error.message.includes('Authentication required')) {
@@ -168,8 +177,12 @@ function FacultyDashboard() {
 
   const handleUpload = async (e) => {
     e.preventDefault()
-    if (!uploadFile || !selectedSubject) {
-      alert('Please select a subject and file')
+    if (selectedSubject === ALL_OPTION) {
+      alert('Please select a subject')
+      return
+    }
+    if (!uploadFile && !uploadYoutubeUrl.trim()) {
+      alert('Please upload a file or add a YouTube link')
       return
     }
 
@@ -180,24 +193,43 @@ function FacultyDashboard() {
       formData.append('title', uploadTitle)
       formData.append('description', uploadDescription)
       formData.append('material_type', uploadType)
-      formData.append('file', uploadFile)
+      if (uploadFile) {
+        formData.append('file', uploadFile)
+      }
+      if (uploadYoutubeUrl.trim()) {
+        formData.append('youtube_url', uploadYoutubeUrl.trim())
+      }
 
-      await api.uploadMaterial(formData)
+      const createdMaterial = await api.uploadMaterial(formData)
       
       // Reset form
       setUploadTitle('')
       setUploadDescription('')
       setUploadFile(null)
+      setUploadYoutubeUrl('')
       setShowUploadModal(false)
       
-      // Reload materials
-      loadMaterials()
+      // Show immediately in UI, then sync from backend.
+      if (createdMaterial && createdMaterial.id) {
+        setMaterials((prev) => {
+          const existing = Array.isArray(prev) ? prev : []
+          const withoutSame = existing.filter((item) => String(item.id) !== String(createdMaterial.id))
+          return [createdMaterial, ...withoutSame]
+        })
+      }
+      // Reset to "All" filters so newly uploaded material is always visible immediately.
+      resetMaterialFilters()
       alert('Material uploaded successfully!')
     } catch (error) {
       alert('Upload failed: ' + error.message)
     } finally {
       setUploading(false)
     }
+  }
+
+  const formatUploadTime = (dateValue) => {
+    if (!dateValue) return 'N/A'
+    return new Date(dateValue).toLocaleString()
   }
 
   const handleDeleteMaterial = async (materialId) => {
@@ -265,13 +297,13 @@ function FacultyDashboard() {
   }
 
   useEffect(() => {
-    if (selectedDepartment && selectedYear) {
+    if (selectedDepartment !== ALL_OPTION && selectedYear !== ALL_OPTION) {
       loadSemesters(selectedDepartment, selectedYear)
     }
   }, [selectedDepartment, selectedYear])
 
   useEffect(() => {
-    if (selectedSemester) {
+    if (selectedSemester !== ALL_OPTION) {
       loadSubjects(selectedSemester)
     }
   }, [selectedSemester])
@@ -282,7 +314,15 @@ function FacultyDashboard() {
     } else if (activeTab === 'students') {
       loadStudents()
     }
-  }, [selectedSubject, searchTerm, activeTab, studentSearchTerm])
+  }, [
+    selectedDepartment,
+    selectedYear,
+    selectedSemester,
+    selectedSubject,
+    searchTerm,
+    activeTab,
+    studentSearchTerm
+  ])
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -366,7 +406,7 @@ function FacultyDashboard() {
                     onChange={(e) => handleDepartmentChange(e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
                   >
-                    <option value="">All Departments</option>
+                    <option value={ALL_OPTION}>All Departments</option>
                     {departments.map((dept) => (
                       <option key={dept.id} value={dept.id}>{dept.name}</option>
                     ))}
@@ -380,7 +420,7 @@ function FacultyDashboard() {
                     onChange={(e) => handleYearChange(e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
                   >
-                    <option value="">All Years</option>
+                    <option value={ALL_OPTION}>All Years</option>
                     {years.map((year) => (
                       <option key={year.id} value={year.id}>{year.name}</option>
                     ))}
@@ -392,10 +432,10 @@ function FacultyDashboard() {
                   <select
                     value={selectedSemester}
                     onChange={(e) => handleSemesterChange(e.target.value)}
-                    disabled={!selectedDepartment || !selectedYear}
+                    disabled={selectedDepartment === ALL_OPTION || selectedYear === ALL_OPTION}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none disabled:bg-gray-100"
                   >
-                    <option value="">All Semesters</option>
+                    <option value={ALL_OPTION}>All Semesters</option>
                     {semesters.map((sem) => (
                       <option key={sem.id} value={sem.id}>Semester {sem.number}</option>
                     ))}
@@ -407,10 +447,10 @@ function FacultyDashboard() {
                   <select
                     value={selectedSubject}
                     onChange={(e) => handleSubjectChange(e.target.value)}
-                    disabled={!selectedSemester}
+                    disabled={selectedSemester === ALL_OPTION}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none disabled:bg-gray-100"
                   >
-                    <option value="">All Subjects</option>
+                    <option value={ALL_OPTION}>All Subjects</option>
                     {subjects.map((subject) => (
                       <option key={subject.id} value={subject.id}>{subject.name}</option>
                     ))}
@@ -445,15 +485,31 @@ function FacultyDashboard() {
                     {material.description && (
                       <p className="text-sm text-gray-600 mb-3 line-clamp-2">{material.description}</p>
                     )}
+                    {material.youtube_url && (
+                      <a
+                        href={material.youtube_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-sm text-red-600 hover:text-red-700 font-medium mb-2 block"
+                      >
+                        Watch on YouTube
+                      </a>
+                    )}
+                    <div className="text-xs text-gray-500 mb-3">
+                      <p>Uploaded by: {material.uploaded_by_name || 'Unknown'}</p>
+                      <p>Uploaded at: {formatUploadTime(material.created_at)}</p>
+                    </div>
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-xs text-gray-500">{material.subject_name}</span>
                       <div className="flex gap-2">
-                        <button
-                          onClick={() => handleDownloadMaterial(material.id)}
-                          className="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
-                        >
-                          Download
-                        </button>
+                        {material.file_url && (
+                          <button
+                            onClick={() => handleDownloadMaterial(material.id)}
+                            className="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
+                          >
+                            Download
+                          </button>
+                        )}
                         <button
                           onClick={() => handleDeleteMaterial(material.id)}
                           className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
@@ -489,7 +545,7 @@ function FacultyDashboard() {
                     required
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
                   >
-                    <option value="">Select Subject</option>
+                    <option value={ALL_OPTION}>Select Subject</option>
                     {subjects.map((subject) => (
                       <option key={subject.id} value={subject.id}>{subject.name}</option>
                     ))}
@@ -535,13 +591,24 @@ function FacultyDashboard() {
                 </div>
 
                 <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">YouTube URL (optional)</label>
+                  <input
+                    type="url"
+                    value={uploadYoutubeUrl}
+                    onChange={(e) => setUploadYoutubeUrl(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    placeholder="https://www.youtube.com/watch?v=..."
+                  />
+                </div>
+
+                <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">File *</label>
                   <input
                     type="file"
                     onChange={(e) => setUploadFile(e.target.files[0])}
-                    required
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
                   />
+                  <p className="text-xs text-gray-500 mt-1">Upload a file or provide YouTube URL.</p>
                 </div>
 
                 <div className="flex gap-4">
