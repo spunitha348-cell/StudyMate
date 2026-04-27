@@ -42,6 +42,23 @@ function FacultyDashboard() {
   const [studentSearchTerm, setStudentSearchTerm] = useState('')
   const materialsRequestIdRef = useRef(0)
 
+  const applyClientSearch = (items, term) => {
+    const query = String(term || '').trim().toLowerCase()
+    if (!query) return items
+    return items.filter((item) => {
+      const haystack = [
+        item?.title,
+        item?.description,
+        item?.subject_name,
+        item?.material_type,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+      return haystack.includes(query)
+    })
+  }
+
   const resetMaterialFilters = () => {
     setSelectedDepartment(ALL_OPTION)
     setSelectedYear(ALL_OPTION)
@@ -166,7 +183,8 @@ function FacultyDashboard() {
       
       const data = await api.getAdminMaterials(filters)
       if (requestId === materialsRequestIdRef.current) {
-        setMaterials(Array.isArray(data.results) ? data.results : (Array.isArray(data) ? data : []))
+        const apiItems = Array.isArray(data.results) ? data.results : (Array.isArray(data) ? data : [])
+        setMaterials(applyClientSearch(apiItems, searchTerm))
       }
     } catch (error) {
       console.error('Error loading materials:', error)
