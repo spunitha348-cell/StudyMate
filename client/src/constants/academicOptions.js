@@ -135,30 +135,41 @@ export const getStaticSubjects = (semesterId) => {
   }))
 }
 
+const normalizeKey = (value) => String(value || '').trim().toLowerCase()
+
+const mergeByName = (apiItems, staticItems, idField = 'id') => {
+  const merged = new Map()
+  staticItems.forEach((item) => {
+    const key = normalizeKey(item.name || item[idField])
+    if (key) merged.set(key, item)
+  })
+  ;(Array.isArray(apiItems) ? apiItems : []).forEach((item) => {
+    const key = normalizeKey(item?.name || item?.[idField])
+    if (!key) return
+    const existing = merged.get(key) || {}
+    merged.set(key, {
+      ...existing,
+      ...item,
+      // Prefer static ID format when API returns blank/non-usable values.
+      id: item?.id ?? existing.id,
+    })
+  })
+  return Array.from(merged.values())
+}
+
 export const getDepartmentOptions = (apiDepartments) => {
-  if (Array.isArray(apiDepartments) && apiDepartments.length > 0) {
-    return apiDepartments
-  }
-  return STATIC_DEPARTMENTS
+  return mergeByName(apiDepartments, STATIC_DEPARTMENTS)
 }
 
 export const getYearOptions = (apiYears) => {
-  if (Array.isArray(apiYears) && apiYears.length > 0) {
-    return apiYears
-  }
-  return STATIC_YEARS
+  const merged = mergeByName(apiYears, STATIC_YEARS)
+  return merged.sort((a, b) => (a.number || 0) - (b.number || 0))
 }
 
 export const getSemesterOptions = (apiSemesters, departmentId, yearId) => {
-  if (Array.isArray(apiSemesters) && apiSemesters.length > 0) {
-    return apiSemesters
-  }
-  return getStaticSemesters(departmentId, yearId)
+  return mergeByName(apiSemesters, getStaticSemesters(departmentId, yearId))
 }
 
 export const getSubjectOptions = (apiSubjects, semesterId) => {
-  if (Array.isArray(apiSubjects) && apiSubjects.length > 0) {
-    return apiSubjects
-  }
-  return getStaticSubjects(semesterId)
+  return mergeByName(apiSubjects, getStaticSubjects(semesterId))
 }
