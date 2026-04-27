@@ -69,37 +69,56 @@ class DepartmentViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def list(self, request, *args, **kwargs):
-        # Mongo-first: dedicated collection
+        # Build base list from Django so departments created via migrations/admin are always present.
+        django_departments = list(self.get_queryset().values('id', 'name', 'code', 'created_at'))
+        combined = {}
+        for dept in django_departments:
+            name = str(dept.get('name') or '').strip()
+            if not name:
+                continue
+            combined[name.lower()] = {
+                'id': str(dept.get('id')),
+                'name': name,
+                'code': dept.get('code', '') or '',
+                'created_at': dept.get('created_at'),
+            }
+
+        # Mongo-first: dedicated collection (merge, don't replace)
         try:
             departments_collection = get_collection('departments')
             docs = list(departments_collection.find({}, {'_id': 0, 'id': 1, 'name': 1, 'code': 1, 'created_at': 1}))
             if docs:
-                unique = {}
                 for doc in docs:
                     name = str(doc.get('name') or '').strip()
                     if not name:
                         continue
-                    unique[name.lower()] = {
-                        'id': name,
+                    key = name.lower()
+                    existing = combined.get(key, {})
+                    combined[key] = {
+                        'id': str(doc.get('id') or existing.get('id') or name),
                         'name': name,
-                        'code': doc.get('code', ''),
-                        'created_at': doc.get('created_at'),
+                        'code': doc.get('code', existing.get('code', '')) or '',
+                        'created_at': doc.get('created_at') or existing.get('created_at'),
                     }
-                return Response(sorted(unique.values(), key=lambda item: item['name'].lower()))
         except Exception:
             pass
 
-        # Mongo fallback: derive from uploaded material metadata
+        # Mongo fallback: derive from uploaded material metadata (merge as additional source)
         try:
             materials_collection = get_collection('study_materials')
             department_names = sorted(
                 d for d in materials_collection.distinct('department') if isinstance(d, str) and d.strip()
             )
             if department_names:
-                derived = [{'id': name, 'name': name, 'code': '', 'created_at': None} for name in department_names]
-                return Response(derived)
+                for name in department_names:
+                    key = name.lower()
+                    if key not in combined:
+                        combined[key] = {'id': name, 'name': name, 'code': '', 'created_at': None}
         except Exception:
             pass
+
+        if combined:
+            return Response(sorted(combined.values(), key=lambda item: item['name'].lower()))
 
         return super().list(request, *args, **kwargs)
 
