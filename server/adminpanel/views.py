@@ -242,6 +242,51 @@ class StudyMaterialManagementViewSet(viewsets.ModelViewSet):
             if subject:
                 return subject
 
+        # Static frontend fallback token format:
+        # static::<department>::<year>::<semester>::<subject_name>
+        requested_id = str(requested_subject_id or '').strip()
+        if requested_id.startswith('static::'):
+            parts = requested_id.split('::', 4)
+            if len(parts) == 5:
+                _, department_name, year_name, semester_raw, subject_name = parts
+                if department_name and year_name and subject_name:
+                    semester_number = self._extract_semester_number(semester_raw, semester_raw)
+                    department_obj = Department.objects.filter(name__iexact=department_name).first()
+                    if not department_obj:
+                        department_obj = Department.objects.create(name=department_name, code=department_name)
+
+                    year_obj = Year.objects.filter(name__iexact=year_name).first()
+                    if not year_obj:
+                        year_number = self._extract_semester_number(year_name, year_name)
+                        if year_number < 1:
+                            year_number = 1
+                        year_obj = Year.objects.create(name=year_name, number=year_number)
+
+                    semester_obj = Semester.objects.filter(
+                        department=department_obj,
+                        year=year_obj,
+                        number=semester_number
+                    ).first()
+                    if not semester_obj:
+                        semester_obj = Semester.objects.create(
+                            department=department_obj,
+                            year=year_obj,
+                            number=semester_number,
+                            name=f"Semester {semester_number}"
+                        )
+
+                    subject_obj = Subject.objects.filter(
+                        semester=semester_obj,
+                        name__iexact=subject_name
+                    ).first()
+                    if not subject_obj:
+                        subject_obj = Subject.objects.create(
+                            semester=semester_obj,
+                            name=subject_name,
+                            code=''
+                        )
+                    return subject_obj
+
         try:
             from backend.mongodb import get_collection
             subjects_collection = get_collection('subjects')
@@ -251,7 +296,6 @@ class StudyMaterialManagementViewSet(viewsets.ModelViewSet):
         except Exception:
             return None
 
-        requested_id = str(requested_subject_id or '').strip()
         if not requested_id:
             return None
 
@@ -469,10 +513,13 @@ class StudyMaterialManagementViewSet(viewsets.ModelViewSet):
             # Ensure subject exists in SQLite even when filter dropdown uses Mongo IDs
             request_data = request.data.copy()
             raw_subject_id = request_data.get('subject')
-            if raw_subject_id and not Subject.objects.filter(pk=raw_subject_id).exists():
-                resolved_subject = self._ensure_sqlite_subject(raw_subject_id)
-                if resolved_subject:
-                    request_data['subject'] = str(resolved_subject.id)
+            if raw_subject_id:
+                raw_subject_value = str(raw_subject_id).strip()
+                subject_exists = raw_subject_value.isdigit() and Subject.objects.filter(pk=int(raw_subject_value)).exists()
+                if not subject_exists:
+                    resolved_subject = self._ensure_sqlite_subject(raw_subject_value)
+                    if resolved_subject:
+                        request_data['subject'] = str(resolved_subject.id)
 
             # Validate serializer (file field is optional in serializer)
             serializer = self.get_serializer(data=request_data)
