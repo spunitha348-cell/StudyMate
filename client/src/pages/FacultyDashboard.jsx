@@ -1,6 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../services/api'
+import {
+  getDepartmentOptions,
+  getYearOptions,
+  getSemesterOptions,
+  getSubjectOptions,
+} from '../constants/academicOptions'
 
 const ALL_OPTION = '__ALL__'
 
@@ -68,14 +74,14 @@ function FacultyDashboard() {
       ])
       const depts = Array.isArray(deptsData.results) ? deptsData.results : (Array.isArray(deptsData) ? deptsData : [])
       const yrs = Array.isArray(yearsData.results) ? yearsData.results : (Array.isArray(yearsData) ? yearsData : [])
-      setDepartments(depts)
-      setYears(yrs)
+      setDepartments(getDepartmentOptions(depts))
+      setYears(getYearOptions(yrs))
       // Keep filters as "All" on first load
       resetMaterialFilters()
     } catch (error) {
       console.error('Error loading initial data:', error)
-      setDepartments([])
-      setYears([])
+      setDepartments(getDepartmentOptions([]))
+      setYears(getYearOptions([]))
       if (error.message && error.message.includes('Authentication required')) {
         localStorage.removeItem('isAuthenticated')
         localStorage.removeItem('userRole')
@@ -112,9 +118,10 @@ function FacultyDashboard() {
     try {
       const data = await api.getSemesters({ department: deptId, year: yearId })
       const list = Array.isArray(data.results) ? data.results : (Array.isArray(data) ? data : [])
-      setSemesters(list)
+      setSemesters(getSemesterOptions(list, deptId, yearId))
     } catch (error) {
       console.error('Error loading semesters:', error)
+      setSemesters(getSemesterOptions([], deptId, yearId))
     }
   }
 
@@ -131,9 +138,10 @@ function FacultyDashboard() {
     try {
       const data = await api.getSubjects({ semester: semesterId })
       const list = Array.isArray(data.results) ? data.results : (Array.isArray(data) ? data : [])
-      setSubjects(list)
+      setSubjects(getSubjectOptions(list, semesterId))
     } catch (error) {
       console.error('Error loading subjects:', error)
+      setSubjects(getSubjectOptions([], semesterId))
     }
   }
 
@@ -151,7 +159,9 @@ function FacultyDashboard() {
       if (selectedDepartment !== ALL_OPTION) filters.department = selectedDepartment
       if (selectedYear !== ALL_OPTION) filters.year = selectedYear
       if (selectedSemester !== ALL_OPTION) filters.semester = selectedSemester
-      if (selectedSubject !== ALL_OPTION) filters.subject = selectedSubject
+      if (selectedSubject !== ALL_OPTION && !String(selectedSubject).startsWith('static::')) {
+        filters.subject = selectedSubject
+      }
       if (searchTerm) filters.search = searchTerm
       
       const data = await api.getAdminMaterials(filters)
